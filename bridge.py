@@ -12,7 +12,7 @@ except ImportError:
 # === CONFIGURATION ===
 DEVICE_NAME = "SX765B"
 WRITE_HANDLE = 8
-BRIDGE_URL = ""  # Fill in your Railway URL
+BRIDGE_URL = "https://qwe-production-7475.up.railway.app"
 BRIDGE_SECRET = "sx765b-secret"  # Must match server
 POLL_INTERVAL = 0.3  # seconds
 KEEPALIVE_INTERVAL = 1.5  # seconds
@@ -76,7 +76,7 @@ async def main():
     global duration_start, duration_limit
 
     print("=== SX765B BLE Bridge ===")
-    print(f"Server: {BRIDGE_URL or '(not configured - local only)'}")
+    print(f"Server: {BRIDGE_URL}")
     print()
 
     print("Scanning for SX765B...")
