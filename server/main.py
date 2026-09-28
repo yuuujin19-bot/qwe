@@ -12,7 +12,7 @@ import urllib.request
 app = FastAPI()
 
 SECRET = os.environ.get("BRIDGE_SECRET", "sx765b-secret")
-CAMERA_URL = os.environ.get("CAMERA_URL", "").strip().strip("'\"").rstrip("/")
+CAMERA_URL = os.environ.get("CAMERA_URL", "").strip().strip("\'\"").rstrip("/")
 
 # Command queue (in-memory, single user)
 current_command = {
@@ -184,23 +184,36 @@ def handle_mcp_request(body: dict) -> dict:
                         "content": [{"type": "text", "text": "CAMERA_URL is not configured."}]
                     }
                 }
-           try:
-    camera_url = "".join(CAMERA_URL.split()).strip("'\"").rstrip("/")
 
-    if not camera_url.startswith(("http://", "https://")):
-        camera_url = "https://" + camera_url
+            try:
+                camera_url = "".join(CAMERA_URL.split()).strip("'\"").rstrip("/")
+                if not camera_url.startswith(("http://", "https://")):
+                    camera_url = "https://" + camera_url
 
-    snapshot_url = camera_url + "/latest.jpg"
+                snapshot_url = camera_url + "/latest.jpg"
+                req = urllib.request.Request(
+                    snapshot_url,
+                    headers={"User-Agent": "sx765b-mcp/1.0"}
+                )
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    image_bytes = response.read(8 * 1024 * 1024 + 1)
+                    content_type = response.headers.get_content_type()
 
-    with urllib.request.urlopen(snapshot_url, timeout=10) as response:
-        image_bytes = response.read()
+                if len(image_bytes) > 8 * 1024 * 1024:
+                    raise ValueError("Camera image too large")
+                if not image_bytes:
+                    raise ValueError("Camera returned an empty image")
+                if content_type not in ("image/jpeg", "image/jpg"):
+                    raise ValueError(f"Unexpected content type: {content_type}")
+
                 encoded = base64.b64encode(image_bytes).decode("ascii")
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
                     "result": {
                         "content": [
-                            {"type": "image", "data": encoded, "mimeType": "image/jpeg"}
+                            {"type": "image", "data": encoded, "mimeType": "image/jpeg"},
+                            {"type": "text", "text": "Latest iPhone camera frame."}
                         ]
                     }
                 }
