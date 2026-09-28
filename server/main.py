@@ -184,9 +184,16 @@ def handle_mcp_request(body: dict) -> dict:
                         "content": [{"type": "text", "text": "CAMERA_URL is not configured."}]
                     }
                 }
-            try:
-                with urllib.request.urlopen(f"{CAMERA_URL}/latest.jpg", timeout=10) as response:
-                    image_bytes = response.read()
+           try:
+    camera_url = "".join(CAMERA_URL.split()).strip("'\"").rstrip("/")
+
+    if not camera_url.startswith(("http://", "https://")):
+        camera_url = "https://" + camera_url
+
+    snapshot_url = camera_url + "/latest.jpg"
+
+    with urllib.request.urlopen(snapshot_url, timeout=10) as response:
+        image_bytes = response.read()
                 encoded = base64.b64encode(image_bytes).decode("ascii")
                 return {
                     "jsonrpc": "2.0",
