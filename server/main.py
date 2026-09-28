@@ -242,4 +242,4 @@ async def bridge_heartbeat(hb: BridgeHeartbeat, authorization: Optional[str] = H
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "bridge_online": (time.time() - bridge_status["last_poll"]) < 5}
+    return {"status": "ok", "bridge_online": (time.time() - bridge_status["last_poll"]) < 5} 
