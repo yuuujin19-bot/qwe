@@ -6,10 +6,13 @@ import time
 import os
 import json
 import uuid
+import base64
+import urllib.request
 
 app = FastAPI()
 
 SECRET = os.environ.get("BRIDGE_SECRET", "sx765b-secret")
+CAMERA_URL = os.environ.get("CAMERA_URL", "").rstrip("/")
 
 # Command queue (in-memory, single user)
 current_command = {
@@ -69,6 +72,14 @@ MCP_TOOLS = [
     {
         "name": "toy_status",
         "description": "Check if the BLE bridge is online and what command is active.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {}
+        }
+    },
+    {
+        "name": "camera_snapshot",
+        "description": "Get the latest JPEG frame from the iPhone camera bridge.",
         "inputSchema": {
             "type": "object",
             "properties": {}
@@ -163,6 +174,39 @@ def handle_mcp_request(body: dict) -> dict:
                 }
             }
 
+        elif tool_name == "camera_snapshot":
+            if not CAMERA_URL:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "isError": True,
+                        "content": [{"type": "text", "text": "CAMERA_URL is not configured."}]
+                    }
+                }
+            try:
+                with urllib.request.urlopen(f"{CAMERA_URL}/latest.jpg", timeout=10) as response:
+                    image_bytes = response.read()
+                encoded = base64.b64encode(image_bytes).decode("ascii")
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "content": [
+                            {"type": "image", "data": encoded, "mimeType": "image/jpeg"}
+                        ]
+                    }
+                }
+            except Exception as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "isError": True,
+                        "content": [{"type": "text", "text": f"Camera snapshot failed: {exc}"}]
+                    }
+                }
+
         else:
             return {
                 "jsonrpc": "2.0",
@@ -242,4 +286,4 @@ async def bridge_heartbeat(hb: BridgeHeartbeat, authorization: Optional[str] = H
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "bridge_online": (time.time() - bridge_status["last_poll"]) < 5} 
+    return {"status": "ok", "bridge_online": (time.time() - bridge_status["last_poll"]) < 5}
