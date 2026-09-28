@@ -12,7 +12,7 @@ import urllib.request
 app = FastAPI()
 
 SECRET = os.environ.get("BRIDGE_SECRET", "sx765b-secret")
-CAMERA_URL = os.environ.get("CAMERA_URL", "").rstrip("/")
+CAMERA_URL = os.environ.get("CAMERA_URL", "").strip().strip("'\"").rstrip("/")
 
 # Command queue (in-memory, single user)
 current_command = {
